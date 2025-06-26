@@ -242,6 +242,21 @@ if (typeof cargarDatos === "function") cargarDatos();
     </style>
 </head>
 <body onload="cargarDatos()">
+	<script>
+  const claveCorrecta = "admin123";
+  const claveGuardada = sessionStorage.getItem("clavePrestamos");
+
+  if (claveGuardada !== claveCorrecta) {
+    const intento = prompt("🔐 Ingresa la contraseña de acceso:");
+    if (intento === claveCorrecta) {
+      sessionStorage.setItem("clavePrestamos", claveCorrecta);
+    } else {
+      alert("Contraseña incorrecta.");
+      window.location.href = "https://google.com";
+    }
+  }
+</script>
+
 <!-- Menú de navegación -->
     <nav>
         <ul>
