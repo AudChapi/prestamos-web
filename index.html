@@ -51,6 +51,7 @@
   const salon = document.getElementById("salon").value;
   const horaEntrega = document.getElementById("horaEntrega").value;
   const horaDevolucion = document.getElementById("horaDevolucion").value;
+  
 
   const checkboxes = document.querySelectorAll("input[type='checkbox']:checked");
   let equipos = Array.from(checkboxes).map(cb => cb.value);
@@ -77,6 +78,8 @@
     devuelto: false,
     fecha
   };
+
+
 
   // ✅ Guardar préstamo en Firestore
   await setDoc(doc(db, "prestamos", id), prestamo);
@@ -109,6 +112,11 @@ if (typeof cargarDatos === "function") cargarDatos();
         window.firestore = { db, getFirestore, collection, doc, getDocs, getDoc, setDoc };
       </script>
     <style>
+      table {
+  width: 100%;
+  overflow-x: auto;
+  display: block;
+}
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
@@ -124,9 +132,11 @@ if (typeof cargarDatos === "function") cargarDatos();
         }
 
         .container {
-            max-width: 95%;
+            max-width: 100%;
             margin: auto;
             background: white;
+            width: 100%;
+            box-sizing: border-box;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
@@ -239,11 +249,43 @@ if (typeof cargarDatos === "function") cargarDatos();
         nav ul li a:hover {
             background-color: #0056b3;
         }
+        @media (max-width: 600px) {
+  body {
+    font-size: 14px;
+  }
+
+  nav ul {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  nav ul li {
+    width: 100%;
+    text-align: center;
+  }
+
+  table, th, td {
+    font-size: 12px;
+  }
+
+  .card {
+    font-size: 14px;
+    padding: 8px;
+  }
+}
+@media (max-width: 600px) {
+  .card-body button {
+    display: block;
+    width: 100%;
+    margin-bottom: 6px;
+  }
+}
     </style>
 </head>
 <body onload="cargarDatos()">
-	<script>
-  const claveCorrecta = "admin123";
+<!-- Menú de navegación -->
+ <script>
+  const claveCorrecta = "12345Post";
   const claveGuardada = sessionStorage.getItem("clavePrestamos");
 
   if (claveGuardada !== claveCorrecta) {
@@ -257,7 +299,6 @@ if (typeof cargarDatos === "function") cargarDatos();
   }
 </script>
 
-<!-- Menú de navegación -->
     <nav>
         <ul>
             <li><a href="index.html" onclick="cargarSeccion('gestion')">Gestión de préstamos</a></li>
@@ -345,6 +386,7 @@ if (typeof cargarDatos === "function") cargarDatos();
 
     // Guardar el usuario en la lista de usuarios si no existe
     async function guardarUsuarioSiNoExiste(documento, datos) {
+      
   const usuarioSnap = await firestore.getDoc(firestore.doc(firestore.db, "usuarios", documento));
   if (!usuarioSnap.exists()) {
     await firestore.setDoc(firestore.doc(firestore.db, "usuarios", documento), datos);
