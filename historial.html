@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <link rel="icon" type="image/png" href="favicon.ico">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -90,29 +91,14 @@ window.borrarHistorialFirestore = async function () {
           });
         };
         
-        window.exportarHistorial = function () {
-          const historial = window.historialFire || [];
-          if (historial.length === 0) {
-            alert("No hay datos para exportar.");
-            return;
-          }
         
-          let csvContent = "Fecha,Nombre,Documento,Tipo de Usuario,Facultad,Salón,Hora Entrega,Hora Devolución,Equipos,Horas Netas\n";
-          historial.forEach(p => {
-            const equipos = p.equipos ? p.equipos.join(" - ") : "";
-            const horasNetas = calcularHorasNetas(p.horaEntrega, p.horaDevolucion);
-            csvContent += `"${p.fecha || 'N/A'}","${p.nombre}","${p.documento}","${p.tipoUsuario}","${p.facultad}","${p.salon}","${p.horaEntrega}","${p.horaDevolucion}","${equipos}","${horasNetas}"\n`;
-          });
-        
-          const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-          const link = document.createElement("a");
-          link.href = URL.createObjectURL(blob);
-          link.download = "Historial_Prestamos.csv";
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        };
-        
+
+
+        // Cargar el historial al abrir la página
+        document.addEventListener("DOMContentLoaded", function () {
+            cargarHistorial();
+        });
+
         window.onload = cargarHistorial;
         </script>
     <style>
@@ -259,7 +245,7 @@ window.borrarHistorialFirestore = async function () {
 
         <!-- Campo de búsqueda y filtros -->
         <input type="text" id="busqueda" placeholder="Buscar por nombre, documento o fecha" onkeyup="filtrarHistorial()">
-        <button onclick="exportarHistorial()">Exportar a CSV</button>
+        <button onclick="exportarHistorial()">Exportar a Excel</button>
 
         <!-- Tabla de historial -->
         <table>
@@ -354,29 +340,58 @@ function borrarHistorial() {
         }
 
         function exportarHistorial() {
-    let historial = JSON.parse(localStorage.getItem("historial")) || [];
-    if (historial.length === 0) {
-        alert("No hay datos en el historial para exportar.");
-        return;
-    }
+  const historial = window.historialFire || [];
+  if (historial.length === 0) {
+    alert("No hay datos en el historial para exportar.");
+    return;
+  }
 
-    // Encabezado con la nueva columna de Fecha
-    let csvContent = "Fecha,Nombre,Documento,Tipo de Usuario,Facultad,Salón,Hora Entrega,Hora Devolución,Equipos,Horas Netas\n";
+  // Encabezados
+  const headers = [
+    "Fecha",
+    "Nombre",
+    "Documento",
+    "Tipo de Usuario",
+    "Facultad",
+    "Salón",
+    "Hora Entrega",
+    "Hora Devolución",
+    "Equipos",
+    "Horas Netas"
+  ];
 
-    historial.forEach(p => {
-        let equipos = p.equipos ? p.equipos.join(" - ") : "";
-        let horasNetas = calcularHorasNetas(p.horaEntrega, p.horaDevolucion);
-        // Agregar la fecha al CSV
-        csvContent += `"${p.fecha || 'N/A'}","${p.nombre}","${p.documento}","${p.tipoUsuario}","${p.facultad}","${p.salon}","${p.horaEntrega}","${p.horaDevolucion}","${equipos}","${horasNetas}"\n`;
-    });
+  const rows = [headers];
 
-    let blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    let link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "Historial_Prestamos.csv";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // Convertir historial en filas
+  historial.forEach(p => {
+    const equipos = p.equipos ? p.equipos.join(" - ") : "";
+    const horasNetas = calcularHorasNetas(p.horaEntrega, p.horaDevolucion);
+    rows.push([
+      p.fecha || "N/A",
+      p.nombre,
+      p.documento,
+      p.tipoUsuario,
+      p.facultad,
+      p.salon,
+      p.horaEntrega,
+      p.horaDevolucion,
+      equipos,
+      horasNetas
+    ]);
+  });
+
+  // Crear hoja y ajustar columnas
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws["!cols"] = [
+    { wch: 12 }, { wch: 30 }, { wch: 15 }, { wch: 18 },
+    { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 15 },
+    { wch: 30 }, { wch: 12 }
+  ];
+
+  // Crear libro y exportar
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Historial");
+  XLSX.writeFile(wb, "Historial_Prestamos.xlsx");
 }
 
         // Cargar el historial al abrir la página
@@ -384,5 +399,6 @@ function borrarHistorial() {
             cargarHistorial();
         });
     </script>
+    <b> © Juan Ladino - 2025 </b>
 </body>
 </html>
