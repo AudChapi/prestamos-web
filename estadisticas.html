@@ -138,12 +138,14 @@
     <table id="tablaEstadisticas">
       <thead>
         <tr>
-          <th>Tipo de Usuario</th>
-          <th>Servicios (Mañana)</th>
-          <th>Servicios (Tarde)</th>
-          <th>Horas Totales (HDMI)</th>
-          <th>Horas Totales (Portátiles)</th>
-          <th>Horas Totales (Anchors)</th>
+            <th>Tipo de Usuario</th>
+            <th>Servicios (Mañana)</th>
+            <th>Servicios (Tarde)</th>
+            
+            <th>Horas HDMI (OneScreen)</th>
+            <th>Horas Control (Videobeam)</th>
+            <th>Horas Portátiles</th>
+            <th>Horas Anchors</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -184,7 +186,7 @@
     "Tipo de Usuario",
     "Servicios (Mañana)",
     "Servicios (Tarde)",
-    "Horas HDMI TV",
+    
     "Horas HDMI OneScreen",
     "Horas Control Videobeam",
     "Horas Portátiles",
@@ -224,9 +226,9 @@ window.exportarEstadisticas = exportarEstadisticas;
 
     async function cargarEstadisticasDesdeFirestore() {
       const estadisticas = {
-          docentes: { mañana: 0, tarde: 0, horasHDMITV: 0, horasHDMIOneScreen: 0, horasVB: 0, horasPortatiles: 0, horasAnchors: 0 },
-          estudiantes: { mañana: 0, tarde: 0, horasHDMITV: 0, horasHDMIOneScreen: 0, horasVB: 0, horasPortatiles: 0, horasAnchors: 0 },
-          administrativos: { mañana: 0, tarde: 0, horasHDMITV: 0, horasHDMIOneScreen: 0, horasVB: 0, horasPortatiles: 0, horasAnchors: 0 }
+          docentes: { mañana: 0, tarde: 0, horasHDMIOneScreen: 0, horasVB: 0, horasPortatiles: 0, horasAnchors: 0 },
+          estudiantes: { mañana: 0, tarde: 0, horasHDMIOneScreen: 0, horasVB: 0, horasPortatiles: 0, horasAnchors: 0 },
+          administrativos: { mañana: 0, tarde: 0, horasHDMIOneScreen: 0, horasVB: 0, horasPortatiles: 0, horasAnchors: 0 }
         };
 
   
