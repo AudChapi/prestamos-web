@@ -140,8 +140,7 @@
         <tr>
             <th>Tipo de Usuario</th>
             <th>Servicios (Mañana)</th>
-            <th>Servicios (Tarde)</th>
-            
+            <th>Servicios (Tarde)</th>           
             <th>Horas HDMI (OneScreen)</th>
             <th>Horas Control (Videobeam)</th>
             <th>Horas Portátiles</th>
@@ -151,6 +150,11 @@
       <tbody></tbody>
     </table>
   </div>
+
+<h3>Subir calendario de auditorios (.docx)</h3>
+<input type="file" id="archivoDocx" accept=".docx" />
+<div id="total-horas-auditorios">Total horas auditorios: 0</div>
+<canvas id="grafica-auditorios" width="800" height="300"></canvas>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
