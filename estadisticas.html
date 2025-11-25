@@ -176,7 +176,6 @@
     const db = getFirestore(app);
   
 
-
   //exportar estadisticas 
 
     function exportarEstadisticas() {
@@ -191,7 +190,7 @@
     "Tipo de Usuario",
     "Servicios (Mañana)",
     "Servicios (Tarde)",
-    
+    "Horas HDMI TV",
     "Horas HDMI OneScreen",
     "Horas Control Videobeam",
     "Horas Portátiles",
@@ -206,10 +205,17 @@
   });
 
   // Crear hoja desde array
+  const ws = XLSX.utils.aoa_to_sheet(rows);
 
-
-
-
+  // (Truco) Formato de columnas
+  ws["!cols"] = [
+    { wch: 18 }, // Tipo de Usuario
+    { wch: 20 },
+    { wch: 20 },
+    { wch: 22 },
+    { wch: 25 },
+    { wch: 22 }
+  ];
 
   // Crear libro y exportar
   const wb = XLSX.utils.book_new();
@@ -220,107 +226,144 @@
 
 
 // Exponer al ámbito global
+// Exponer al ámbito global
 window.exportarEstadisticas = exportarEstadisticas;
 
-    async function cargarEstadisticasDesdeFirestore() {
-      const estadisticas = {
-          docentes: { mañana: 0, tarde: 0, horasHDMIOneScreen: 0, horasVB: 0, horasPortatiles: 0, horasAnchors: 0 },
-          estudiantes: { mañana: 0, tarde: 0, horasHDMIOneScreen: 0, horasVB: 0, horasPortatiles: 0, horasAnchors: 0 },
-          administrativos: { mañana: 0, tarde: 0, horasHDMIOneScreen: 0, horasVB: 0, horasPortatiles: 0, horasAnchors: 0 }
-        };
+async function cargarEstadisticasDesdeFirestore() {
+  const estadisticas = {
+    docentes: { mañana: 0, tarde: 0, horasHDMITV: 0, horasHDMIOneScreen: 0, horasVB: 0, horasPortatiles: 0, horasAnchors: 0 },
+    estudiantes: { mañana: 0, tarde: 0, horasHDMITV: 0, horasHDMIOneScreen: 0, horasVB: 0, horasPortatiles: 0, horasAnchors: 0 },
+    administrativos: { mañana: 0, tarde: 0, horasHDMITV: 0, horasHDMIOneScreen: 0, horasVB: 0, horasPortatiles: 0, horasAnchors: 0 }
+  };
 
-  
-      const tipoMap = {
-        docente: "docentes",
-        estudiante: "estudiantes",
-        administrativo: "administrativos"
-      };
-  
-      const snapshot = await getDocs(collection(db, "historial"));
-      snapshot.forEach(doc => {
-        const p = doc.data();
-        const tipoOriginal = (p.tipoUsuario || "").toLowerCase().trim();
-        const tipo = tipoMap[tipoOriginal];
-  
-        if (!tipo || !estadisticas[tipo]) {
-          console.warn("❌ Tipo no reconocido:", tipoOriginal);
-          return;
-        }
-  
-        const grupo = estadisticas[tipo];
-  
-        const hora = parseInt(p.horaEntrega.split(":")[0]);
-        if (hora < 12) grupo.mañana++;
-        else grupo.tarde++;
-  
-        const horasNetas = calcularHorasNetas(p.horaEntrega, p.horaDevolucion);
-  
-        if ((p.equipos || []).includes("HDMI (TV)")) grupo.horasHDMITV += horasNetas;
-        if ((p.equipos || []).includes("HDMI (ONESCREEN)")) grupo.horasHDMIOneScreen += horasNetas;
-        if ((p.equipos || []).includes("CONTROL VB")) grupo.horasVB += horasNetas;
-        if ((p.equipos || []).some(e => e.includes("PORTATIL"))) grupo.horasPortatiles += horasNetas;
-        if ((p.equipos || []).includes("ANCHOR")) grupo.horasAnchors += horasNetas;
-      });
-  
-      // Renderizar tabla
-      const tabla = document.querySelector("#tablaEstadisticas tbody");
-       tabla.innerHTML = `
-            <tr>
-              <td>Docentes</td>
-              <td>${estadisticas.docentes.mañana}</td>
-              <td>${estadisticas.docentes.tarde}</td>
-              
-              <td>${estadisticas.docentes.horasHDMIOneScreen.toFixed(2)}</td>
-              <td>${estadisticas.docentes.horasVB.toFixed(2)}</td>
-              <td>${estadisticas.docentes.horasPortatiles.toFixed(2)}</td>
-              <td>${estadisticas.docentes.horasAnchors.toFixed(2)}</td>
-            </tr>
-            <tr>
-              <td>Estudiantes</td>
-              <td>${estadisticas.estudiantes.mañana}</td>
-              <td>${estadisticas.estudiantes.tarde}</td>
-             
-              <td>${estadisticas.estudiantes.horasHDMIOneScreen.toFixed(2)}</td>
-              <td>${estadisticas.estudiantes.horasVB.toFixed(2)}</td>
-              <td>${estadisticas.estudiantes.horasPortatiles.toFixed(2)}</td>
-              <td>${estadisticas.estudiantes.horasAnchors.toFixed(2)}</td>
-            </tr>
-            <tr>
-              <td>Administrativos</td>
-              <td>${estadisticas.administrativos.mañana}</td>
-              <td>${estadisticas.administrativos.tarde}</td>
-             
-              <td>${estadisticas.administrativos.horasHDMIOneScreen.toFixed(2)}</td>
-              <td>${estadisticas.administrativos.horasVB.toFixed(2)}</td>
-              <td>${estadisticas.administrativos.horasPortatiles.toFixed(2)}</td>
-              <td>${estadisticas.administrativos.horasAnchors.toFixed(2)}</td>
-            </tr>
-          `;
-// Guardar los datos en variables globales
-window.estadisticas = estadisticas;
-window.prestamos = snapshot.docs.map(d => d.data());
+  // 🔹 Mapa de equivalencias
+  const tipoMap = {
+    docente: "docentes",
+    estudiante: "estudiantes",
+    administrativo: "administrativos"
+  };
 
+  const snapshot = await getDocs(collection(db, "historial"));
+  snapshot.forEach(doc => {
+    const p = doc.data();
 
-// Calcular total de servicios
-let totalServicios = 0;
-for (const tipo in estadisticas) {
-  totalServicios += estadisticas[tipo].mañana + estadisticas[tipo].tarde;
+    // 🧩 Normalización de tipo de usuario
+    let tipoOriginal = (p.tipoUsuario || "").toLowerCase().trim();
+    if (tipoOriginal.includes("docen") || tipoOriginal.includes("formad")) tipoOriginal = "docente";
+    else if (tipoOriginal.includes("estu")) tipoOriginal = "estudiante";
+    else if (tipoOriginal.includes("admin")) tipoOriginal = "administrativo";
+
+    const tipo = tipoMap[tipoOriginal];
+    if (!tipo || !estadisticas[tipo]) {
+      console.warn("❌ Tipo no reconocido:", p.tipoUsuario);
+      return;
+    }
+
+    const grupo = estadisticas[tipo];
+
+// 🕒 Calcular horas y determinar turno
+let horasNetas = 0;
+let horaInicio = 0;
+
+// ✅ Nuevo formato (varios salones)
+if (Array.isArray(p.salones) && p.salones.length > 0) {
+  p.salones.forEach(salon => {
+    const h = calcularHorasNetas(salon.horaEntrega, salon.horaDevolucion);
+    if (!isNaN(h) && h > 0) horasNetas += h;
+    if (!horaInicio && salon.horaEntrega) horaInicio = parseInt(salon.horaEntrega.split(":")[0]);
+  });
 }
-window.totalServicios = totalServicios;
+// 🕗 Formato antiguo o migrado (solo un salón)
+else {
+  const h = calcularHorasNetas(p.horaEntrega, p.horaDevolucion);
+  if (!isNaN(h) && h > 0) horasNetas = h;
+  if (p.horaEntrega) horaInicio = parseInt(p.horaEntrega.split(":")[0]);
+}
 
-console.log("✅ Estadísticas y préstamos listos para exportar");
+if (horaInicio < 12) grupo.mañana++;
+else grupo.tarde++;
 
-    }
-  
-    function calcularHorasNetas(horaEntrega, horaDevolucion) {
-      const entrega = new Date(`1970-01-01T${horaEntrega}:00`);
-      const devolucion = new Date(`1970-01-01T${horaDevolucion}:00`);
-      const diferencia = devolucion - entrega;
-      return Math.max(0, diferencia / (1000 * 60 * 60)); // en horas
-    }
 
- 
+    // 💻 Sumar horas por tipo de equipo
+(p.equipos || []).forEach(eq => {
+  const nombre = typeof eq === "string" ? eq.toUpperCase() : (eq.nombre || "").toUpperCase();
+  const cantidad = typeof eq === "string" ? 1 : (Number(eq.cantidad) || 1);
+  const horasTotales = Number(horasNetas) * cantidad;
 
+  if (isNaN(horasTotales)) return; // evita contaminar sumas
+
+  if (nombre.includes("HDMI") && nombre.includes("TV")) grupo.horasHDMITV += horasTotales;
+  else if (nombre.includes("HDMI") && nombre.includes("ONESCREEN")) grupo.horasHDMIOneScreen += horasTotales;
+  else if (nombre.includes("CONTROL") || nombre.includes("VB")) grupo.horasVB += horasTotales;
+  else if (nombre.includes("PORTATIL")) grupo.horasPortatiles += horasTotales;
+  else if (nombre.includes("ANCHOR")) grupo.horasAnchors += horasTotales;
+});
+
+  });
+
+  // 🧾 Renderizar tabla
+  const tabla = document.querySelector("#tablaEstadisticas tbody");
+  tabla.innerHTML = `
+    <tr>
+      <td>Docentes</td>
+      <td>${estadisticas.docentes.mañana}</td>
+      <td>${estadisticas.docentes.tarde}</td>
+      <td>${estadisticas.docentes.horasHDMITV.toFixed(2)}</td>
+      <td>${estadisticas.docentes.horasHDMIOneScreen.toFixed(2)}</td>
+      <td>${estadisticas.docentes.horasVB.toFixed(2)}</td>
+      <td>${estadisticas.docentes.horasPortatiles.toFixed(2)}</td>
+      <td>${estadisticas.docentes.horasAnchors.toFixed(2)}</td>
+    </tr>
+    <tr>
+      <td>Estudiantes</td>
+      <td>${estadisticas.estudiantes.mañana}</td>
+      <td>${estadisticas.estudiantes.tarde}</td>
+      <td>${estadisticas.estudiantes.horasHDMITV.toFixed(2)}</td>
+      <td>${estadisticas.estudiantes.horasHDMIOneScreen.toFixed(2)}</td>
+      <td>${estadisticas.estudiantes.horasVB.toFixed(2)}</td>
+      <td>${estadisticas.estudiantes.horasPortatiles.toFixed(2)}</td>
+      <td>${estadisticas.estudiantes.horasAnchors.toFixed(2)}</td>
+    </tr>
+    <tr>
+      <td>Administrativos</td>
+      <td>${estadisticas.administrativos.mañana}</td>
+      <td>${estadisticas.administrativos.tarde}</td>
+      <td>${estadisticas.administrativos.horasHDMITV.toFixed(2)}</td>
+      <td>${estadisticas.administrativos.horasHDMIOneScreen.toFixed(2)}</td>
+      <td>${estadisticas.administrativos.horasVB.toFixed(2)}</td>
+      <td>${estadisticas.administrativos.horasPortatiles.toFixed(2)}</td>
+      <td>${estadisticas.administrativos.horasAnchors.toFixed(2)}</td>
+    </tr>
+  `;
+
+  // 📊 Guardar variables globales
+  window.estadisticas = estadisticas;
+  window.prestamos = snapshot.docs.map(d => d.data());
+
+  // 🧮 Calcular total de servicios
+  let totalServicios = 0;
+  for (const tipo in estadisticas) {
+    totalServicios += estadisticas[tipo].mañana + estadisticas[tipo].tarde;
+  }
+  window.totalServicios = totalServicios;
+
+  console.log("✅ Estadísticas y préstamos listos para exportar");
+}
+
+function calcularHorasNetas(horaEntrega, horaDevolucion) {
+  if (!horaEntrega || !horaDevolucion) return 0;
+
+  const [h1, m1] = horaEntrega.split(":").map(Number);
+  const [h2, m2] = horaDevolucion.split(":").map(Number);
+  const t1 = h1 * 60 + m1;
+  const t2 = h2 * 60 + m2;
+
+  let diffMin = t2 - t1;
+  if (diffMin < 0) diffMin += 24 * 60; // por si pasó medianoche
+
+  const horas = diffMin / 60;
+  return Number(horas.toFixed(2));
+}
 
 
 
@@ -417,18 +460,24 @@ async function exportarEstadisticasConPlantilla() {
 
         sheet.cell("C22").value(totalHorasVideobeam);
         sheet.cell("C23").value(totalHorasPortatil);
-        sheet.cell("C24").value(totalHorasOnescreen);
-        sheet.cell("C25").value(totalHorasAnchor);
-        sheet.cell("C31").value(window.totalSolicitudes);
+        sheet.cell("C25").value(totalHorasOnescreen);
+        sheet.cell("C26").value(totalHorasTV);
+        sheet.cell("C27").value(totalHorasAnchor);
+        sheet.cell("C39").value(window.totalSolicitudes);
         sheet.cell("C5").value(window.totalSolicitudes);
 
         // 🔹 Auditorios → celdas en la plantilla
         const mapaAuditoriosCeldas = {
-          "BAUSCH Y LOMB": "C28",
-          "HOUSTON": "C30",
-          "SALON SOCIAL": "C29"
+          "AZUL": "C30",
+          "ROJO": "C31",
+          "SALA 1": "C32",
+          "SALA 2": "C33",
+          "EXPOSICIONES A Y B": "C34",
+          "CINCUENTENARIO": "C35",
+          "HNO MARTIN": "C36",
+          "CONCEJO ACADEMICO": "C37",
+          "TEATRO": "C38"
         };
-
 
 // 🔹 Escribir cada auditorio en su celda correspondiente
 for (let aud in mapaAuditoriosCeldas) {
@@ -571,11 +620,16 @@ function calcularHorasDesdeTexto(texto) {
 
 
 const auditoriosValidos = [
-  "BAUSCH Y LOMB",
-  "HOUSTON",
-  "SALON SOCIAL"
+  "AZUL",
+  "ROJO",
+  "SALA 1",
+  "SALA 2",
+  "EXPOSICIONES A Y B",
+  "CINCUENTENARIO",
+  "HNO MARTIN",
+  "CONCEJO ACADEMICO",
+  "TEATRO"
 ];
-
 
 // Inicializar Fuse.js para fuzzy matching
 const fuse = new Fuse(auditoriosValidos, {
@@ -589,11 +643,17 @@ function normalizarAuditorio(nombre) {
   let n = nombre.toUpperCase().trim();
 
   // Reglas específicas (correcciones manuales)
-  if (n.includes("BAUSCH")) return "BAUSCH Y LOMB";
-  if (n.includes("LOMB")) return "BAUSCH Y LOMB";
-  if (n.includes("HOUSTON")) return "HOUSTON";
-  if (n.includes("SALON SOCIAL")) return "SALON SOCIAL";
-  if (n.includes("SALÓN SOCIAL")) return "SALON SOCIAL";
+  if (n.includes("SALA DE SUSTENTACION 4")) return "SALA 1";
+  if (n.includes("SALA DE SUSTENTACION 5")) return "SALA 2";
+  if (n.includes("SALAS DE EXPOSICION A Y B")) return "EXPOSICIONES A Y B";
+  if (n.includes("AUDITORIO ROJO")) return "ROJO";
+  if (n.includes("AUDITORIO AZUL")) return "AZUL";
+  if (n.includes("SALA DE JUNTAS")) return "CONCEJO ACADEMICO";
+  if (n.includes("JUNTAS SIMULTANEAS")) return "CONCEJO ACADEMICO";
+  if (n.includes("JUNTAS") && n.includes("FUNDADORES")) return "CONCEJO ACADEMICO";
+  if (n.includes("CINCUENTENARIO")) return "CINCUENTENARIO";
+  if (n.includes("HNO") || n.includes("MARTIN")) return "HNO MARTIN";
+  if (n.includes("TEATRO")) return "TEATRO";
 
   // Fuzzy matching para casos como "VAUSCH"
   const result = fuse.search(n);
