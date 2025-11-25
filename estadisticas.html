@@ -456,23 +456,17 @@ async function exportarEstadisticasConPlantilla() {
 
         sheet.cell("C22").value(totalHorasVideobeam);
         sheet.cell("C23").value(totalHorasPortatil);
-        sheet.cell("C25").value(totalHorasOnescreen);
-        sheet.cell("C26").value(totalHorasTV);
-        sheet.cell("C27").value(totalHorasAnchor);
+        sheet.cell("C24").value(totalHorasOnescreen);
+        sheet.cell("C25").value(totalHorasAnchor);
         sheet.cell("C39").value(window.totalSolicitudes);
         sheet.cell("C5").value(window.totalSolicitudes);
 
         // 🔹 Auditorios → celdas en la plantilla
         const mapaAuditoriosCeldas = {
-          "AZUL": "C30",
-          "ROJO": "C31",
-          "SALA 1": "C32",
-          "SALA 2": "C33",
-          "EXPOSICIONES A Y B": "C34",
-          "CINCUENTENARIO": "C35",
-          "HNO MARTIN": "C36",
-          "CONCEJO ACADEMICO": "C37",
-          "TEATRO": "C38"
+          "BAUSH & LOMB": "C28",
+          "SALON SOCIAL": "C29",
+          "HOUSTON": "C30"
+
         };
 
 // 🔹 Escribir cada auditorio en su celda correspondiente
@@ -616,15 +610,9 @@ function calcularHorasDesdeTexto(texto) {
 
 
 const auditoriosValidos = [
-  "AZUL",
-  "ROJO",
-  "SALA 1",
-  "SALA 2",
-  "EXPOSICIONES A Y B",
-  "CINCUENTENARIO",
-  "HNO MARTIN",
-  "CONCEJO ACADEMICO",
-  "TEATRO"
+  "BAUSH & LOMB",
+  "SALON SOCIAL",
+  "HOUSTON"
 ];
 
 // Inicializar Fuse.js para fuzzy matching
